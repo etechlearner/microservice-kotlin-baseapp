@@ -1,0 +1,96 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  namespace: nsgr
+  name: webhookservice
+  labels:
+    app: webhookservice
+spec:
+  template:
+    metadata:
+      labels:
+        app: webhookservice
+        tier: web
+    spec:
+      containers:
+        - name: webhookservice
+          image: gymrabbit/webhookservice:KVERSION
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8088
+              path: /actuator/health
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              port: 8088
+              path: /actuator/health
+            initialDelaySeconds: 5
+          ports:
+            - containerPort: 8088
+          env:
+            - name: APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: app_url
+            - name: ELASTIC_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_port
+            - name: ELASTIC_CLUSTER
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_cluster
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_password
+            - name: ELASTIC_LIMIT
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_limit
+            - name: ELASTIC_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: elastic_env
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-config
+  namespace: nsgr
+data:
+  app_url: APP_URL
+  elastic_port: ELASTIC_PORT
+  elastic_cluster: ELASTIC_CLUSTER
+  elastic_username: ELASTIC_USERNAME
+  elastic_password: ELASTIC_PASSWORD
+  elastic_limit: ELASTIC_LIMIT
+  elastic_env: ELASTIC_ENV
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: nsgr
+  name: webhookservice
+  labels:
+    app: webhookservice
+spec:
+  type: NodePort
+  selector:
+    app: webhookservice
+    tier: web
+  ports:
+    - port: 8088
+      targetPort: 8088
